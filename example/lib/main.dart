@@ -1,10 +1,13 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:nested_navigator_tabs/nested_navigator_tabs.dart';
+import 'package:nested_navigator_tabs/route_observer.dart';
 
 void main() {
   runApp(MyApp());
 }
+
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
@@ -16,6 +19,8 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
+      navigatorObservers: [routeObserver],
+      builder: (context, child) => RouteObserverProvider(routeObserver: routeObserver, child: child,),
       initialRoute: '/',
       onGenerateRoute: generateRoute,
     );
@@ -137,11 +142,18 @@ class AdvancedTabPage extends StatelessWidget {
   }
 }
 
-class CustomPage extends StatelessWidget {
+class CustomPage extends StatefulWidget {
   final String title;
   final String to;
 
   const CustomPage({Key key, @required this.title, this.to}) : super(key: key);
+
+  @override
+  _CustomPageState createState() => _CustomPageState();
+}
+
+class _CustomPageState extends State<CustomPage> {
+  int showCount = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -149,68 +161,84 @@ class CustomPage extends StatelessWidget {
       appBar: AppBar(
         title: Text("Nested Navigator Tab"),
       ),
-      body: Builder(builder: (context) {
-        return Container(
-          width: double.infinity,
-          height: double.infinity,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                title,
-                style: TextStyle(fontSize: 20),
-              ),
-              MaterialButton(
-                color: Colors.red,
-                child: Text("next page"),
-                onPressed: to != null
-                    ? () {
-                        Navigator.of(context).pushNamed(to);
-                      }
-                    : null,
-              ),
-              MaterialButton(
-                color: Colors.red,
-                child: Text("Root navigator"),
-                onPressed: () {
-                  Navigator.of(context, rootNavigator: true).pushNamed("page3");
-                },
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  MaterialButton(
-                    color: Colors.red,
-                    child: Text("Mail tab"),
-                    onPressed: () {
-                      try {
-                        NestedNavigatorTabs.switchTabTo(context, tabIndex: 0);
-                      } catch (exception) {
-                        Scaffold.of(context).showSnackBar(SnackBar(
-                          content: Text("No tabbar found"),
-                        ));
-                      }
-                    },
-                  ),
-                  MaterialButton(
-                    color: Colors.red,
-                    child: Text("Person tab"),
-                    onPressed: () {
-                      try {
-                        NestedNavigatorTabs.switchTabTo(context, tabIndex: 1);
-                      } catch (exception) {
-                        Scaffold.of(context).showSnackBar(SnackBar(
-                          content: Text("No tabbar found"),
-                        ));
-                      }
-                    },
-                  ),
-                ],
-              )
-            ],
-          ),
-        );
-      }),
+      body: VisibilityObserver(
+        onVisible: (fromPop) {
+          WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
+            setState(() {
+              showCount++;
+            });
+          });
+        },
+        onInvisible: (isPopped) {
+
+        },
+        child: Builder(builder: (context) {
+          return Container(
+            width: double.infinity,
+            height: double.infinity,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  widget.title,
+                  style: TextStyle(fontSize: 20),
+                ),
+                Text(
+                 "Visited: $showCount",
+                  style: TextStyle(fontSize: 20),
+                ),
+                MaterialButton(
+                  color: Colors.red,
+                  child: Text("next page"),
+                  onPressed: widget.to != null
+                      ? () {
+                          Navigator.of(context).pushNamed(widget.to);
+                        }
+                      : null,
+                ),
+                MaterialButton(
+                  color: Colors.red,
+                  child: Text("Root navigator"),
+                  onPressed: () {
+                    Navigator.of(context, rootNavigator: true).pushNamed("page3");
+                  },
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    MaterialButton(
+                      color: Colors.red,
+                      child: Text("Mail tab"),
+                      onPressed: () {
+                        try {
+                          NestedNavigatorTabs.switchTabTo(context, tabIndex: 0);
+                        } catch (exception) {
+                          Scaffold.of(context).showSnackBar(SnackBar(
+                            content: Text("No tabbar found"),
+                          ));
+                        }
+                      },
+                    ),
+                    MaterialButton(
+                      color: Colors.red,
+                      child: Text("Person tab"),
+                      onPressed: () {
+                        try {
+                          NestedNavigatorTabs.switchTabTo(context, tabIndex: 1);
+                        } catch (exception) {
+                          Scaffold.of(context).showSnackBar(SnackBar(
+                            content: Text("No tabbar found"),
+                          ));
+                        }
+                      },
+                    ),
+                  ],
+                )
+              ],
+            ),
+          );
+        }),
+      ),
     );
   }
 }
@@ -218,33 +246,39 @@ class CustomPage extends StatelessWidget {
 Route<dynamic> generateRoute(RouteSettings settings) {
   switch (settings.name) {
     case '/':
-      return MaterialPageRoute(builder: (_) => DemoPage());
+      return MaterialPageRoute(settings: settings, builder: (_) => DemoPage());
     case 'simple':
-      return MaterialPageRoute(builder: (_) => TabPage());
+      return MaterialPageRoute(settings: settings, builder: (_) => TabPage());
     case 'advanced':
-      return MaterialPageRoute(builder: (_) => AdvancedTabPage());
+      return MaterialPageRoute(
+          settings: settings, builder: (_) => AdvancedTabPage());
     case 'page1':
       return MaterialPageRoute(
+          settings: settings,
           builder: (_) => CustomPage(
                 title: "page1",
                 to: "page3",
               ));
     case 'page2':
       return MaterialPageRoute(
+          settings: settings,
           builder: (_) => CustomPage(
                 title: "page2",
                 to: "page3",
               ));
     case 'page3':
       return MaterialPageRoute(
+          settings: settings,
           builder: (_) => CustomPage(
                 title: "page3",
                 to: "page4",
               ));
     case 'page4':
       return CupertinoPageRoute(
+          settings: settings,
           builder: (_) => CustomPage(title: "page4 - cupertino"));
     default:
-      return MaterialPageRoute(builder: (_) => CustomPage(title: "default"));
+      return MaterialPageRoute(        settings: settings,
+          builder: (_) => CustomPage(title: "default"));
   }
 }
