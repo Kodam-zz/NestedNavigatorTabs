@@ -1,3 +1,6 @@
+## [0.2.1] 
+ * Missing changelog
+ * Formatting
 ## [0.2.0] 
 
  * Backstack handling strategies

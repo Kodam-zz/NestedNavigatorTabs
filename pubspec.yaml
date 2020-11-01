@@ -1,6 +1,6 @@
 name: nested_navigator_tabs
 description: Tabs with nested navigators and multiple backstack handling stategy. Also includes correct visibility detection for the inner pages.
-version: 0.2.0
+version: 0.2.1
 repository: https://github.com/Kodam-zz/NestedNavigatorTabs
 
 environment:

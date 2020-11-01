@@ -20,7 +20,10 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       navigatorObservers: [routeObserver],
-      builder: (context, child) => RouteObserverProvider(routeObserver: routeObserver, child: child,),
+      builder: (context, child) => RouteObserverProvider(
+        routeObserver: routeObserver,
+        child: child,
+      ),
       initialRoute: '/',
       onGenerateRoute: generateRoute,
     );
@@ -169,9 +172,7 @@ class _CustomPageState extends State<CustomPage> {
             });
           });
         },
-        onInvisible: (isPopped) {
-
-        },
+        onInvisible: (isPopped) {},
         child: Builder(builder: (context) {
           return Container(
             width: double.infinity,
@@ -184,7 +185,7 @@ class _CustomPageState extends State<CustomPage> {
                   style: TextStyle(fontSize: 20),
                 ),
                 Text(
-                 "Visited: $showCount",
+                  "Visited: $showCount",
                   style: TextStyle(fontSize: 20),
                 ),
                 MaterialButton(
@@ -200,7 +201,8 @@ class _CustomPageState extends State<CustomPage> {
                   color: Colors.red,
                   child: Text("Root navigator"),
                   onPressed: () {
-                    Navigator.of(context, rootNavigator: true).pushNamed("page3");
+                    Navigator.of(context, rootNavigator: true)
+                        .pushNamed("page3");
                   },
                 ),
                 Row(
@@ -278,7 +280,7 @@ Route<dynamic> generateRoute(RouteSettings settings) {
           settings: settings,
           builder: (_) => CustomPage(title: "page4 - cupertino"));
     default:
-      return MaterialPageRoute(        settings: settings,
-          builder: (_) => CustomPage(title: "default"));
+      return MaterialPageRoute(
+          settings: settings, builder: (_) => CustomPage(title: "default"));
   }
 }
