@@ -74,7 +74,7 @@ class _VisibilityObserverState extends State<VisibilityObserver>
   }
 
   @override
-  // new route hase benn pushed
+  // new route has been pushed
   void didPushNext() {
     widget.onInvisible?.call(false);
     super.didPushNext();
