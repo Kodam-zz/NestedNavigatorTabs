@@ -33,6 +33,9 @@ class NestedNavigatorTabs extends StatefulWidget {
   /// Defines how the tabs and the inner navigation stacks work.
   final BackMode backMode;
 
+  final void Function({@required int tab, @required String routeName, @required StackEvent type})
+  onGlobalStackChanged;
+
   List<String> get _defaultRouteNames =>
       tabs.map((e) => e.defaultRouteName).toList();
 
@@ -49,6 +52,7 @@ class NestedNavigatorTabs extends StatefulWidget {
     this.popNestedRouteOnBack = true,
     this.initialTab = 0,
     this.backMode = BackMode.globalStack,
+    this.onGlobalStackChanged,
   })  : assert(tabs != null && tabs.isNotEmpty,
             "Tabs must contain at least 1 item"),
         assert(initialTab >= 0 && initialTab < tabs.length),
@@ -140,7 +144,10 @@ class _NestedNavigatorTabsState extends State<NestedNavigatorTabs> {
         .toList();
     navigatorObservers = widget._defaultRouteNames
         .map(withIndex((navigator, index) => TabNavigatorObserver(
-            emptyName: _emptyRoute, globalStack: globalStack, tab: index)))
+            emptyName: _emptyRoute, globalStack: globalStack, tab: index, onGlobalStackChanged: ({routeName, type}) {
+              // print('$routeName on tab $index became ${type == StackEvent.becameVisible ? "visible" : "invisible"}');
+                widget.onGlobalStackChanged?.call(tab: index, routeName: routeName, type: type);
+            },)))
         .toList();
 
     onWillPopForStayOnTab = () async {
@@ -333,27 +340,40 @@ class TabNavigatorStackItem {
   final String routeName;
   final bool isFirst;
 
-  TabNavigatorStackItem(this.tab, this.routeName, {this.isFirst});
+  TabNavigatorStackItem(this.tab, this.routeName, {this.isFirst = false})
+      : assert(isFirst != null),
+        assert(tab != null),
+        assert(routeName != null);
 }
+
+enum StackEvent { becameVisible, becameInvisible }
 
 class TabNavigatorObserver extends NavigatorObserver {
   final int tab;
   final List<TabNavigatorStackItem> stack = [];
   final List<TabNavigatorStackItem> globalStack;
+  final void Function({@required String routeName, @required StackEvent type})
+      onGlobalStackChanged;
   final String emptyName;
 
   TabNavigatorObserver(
       {@required this.globalStack,
+      @required this.onGlobalStackChanged,
       @required this.tab,
       @required this.emptyName});
 
   @override
   void didPop(Route route, Route previousRoute) {
     // print("item popped on tab: $tab with name: ${route.settings.name}");
+    assert(route.settings != null);
+    assert(previousRoute.settings != null);
+
     if (route.settings.name != emptyName) {
       stack.removeLast();
-      globalStack
-          .remove(globalStack.where((element) => element.tab == tab).last);
+      var last = globalStack.where((element) => element.tab == tab).last;
+      globalStack.remove(last);
+      onGlobalStackChanged(routeName: route.settings.name, type: StackEvent.becameInvisible);
+      onGlobalStackChanged(routeName: previousRoute.settings.name, type: StackEvent.becameVisible);
     } else {
       if (globalStack.firstWhere((element) => element.tab == tab,
               orElse: () => null) ==
@@ -361,6 +381,8 @@ class TabNavigatorObserver extends NavigatorObserver {
         globalStack.add(TabNavigatorStackItem(tab, previousRoute.settings.name,
             isFirst: previousRoute.isFirst));
       }
+      onGlobalStackChanged(routeName: previousRoute.settings.name, type: StackEvent.becameVisible);
+
     }
     // print("items: " + globalStack.toString());
 
@@ -370,12 +392,16 @@ class TabNavigatorObserver extends NavigatorObserver {
   @override
   void didReplace({Route<dynamic> newRoute, Route<dynamic> oldRoute}) {
     // print("item replaced on tab: $tab with name: ${newRoute.settings.name}");
+    assert(newRoute.settings != null);
+    assert(oldRoute.settings != null);
 
     stack.removeLast();
     globalStack.remove(globalStack.where((element) => element.tab == tab).last);
 
     stack.add(TabNavigatorStackItem(tab, newRoute.settings.name));
     globalStack.add(TabNavigatorStackItem(tab, newRoute.settings.name));
+    onGlobalStackChanged(routeName: oldRoute.settings.name, type: StackEvent.becameInvisible);
+    onGlobalStackChanged(routeName: newRoute.settings.name, type: StackEvent.becameVisible);
     // print("items: " + globalStack.toString());
     super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
   }
@@ -383,28 +409,50 @@ class TabNavigatorObserver extends NavigatorObserver {
   @override
   void didRemove(Route<dynamic> route, Route<dynamic> previousRoute) {
     // print("item removed on tab: $tab with name: ${route.settings.name}");
+    assert(route.settings != null);
+    if (previousRoute != null){
+      assert(previousRoute.settings != null);
+    }
 
     stack.removeLast();
-    globalStack.remove(globalStack.where((element) => element.tab == tab).last);
+    var last = globalStack.where((element) => element.tab == tab).last;
+    globalStack.remove(last);
+    onGlobalStackChanged(routeName: route.settings.name, type: StackEvent.becameInvisible);
+    if (previousRoute != null){
+      onGlobalStackChanged(routeName: previousRoute.settings.name, type: StackEvent.becameVisible);
+
+    }
     // print("items: " + globalStack.toString());
 
     super.didRemove(route, previousRoute);
   }
 
+
   @override
   void didPush(Route<dynamic> route, Route<dynamic> previousRoute) {
     // print("item pushed on tab: $tab with name: ${route.settings.name}");
-
+    assert(route.settings != null);
+    if (previousRoute != null) {
+      assert(previousRoute.settings != null);
+    }
     if (route.settings.name != emptyName) {
       stack.add(TabNavigatorStackItem(tab, route.settings.name,
           isFirst: route.isFirst));
       globalStack.add(TabNavigatorStackItem(tab, route.settings.name,
           isFirst: route.isFirst));
+      onGlobalStackChanged(routeName: route.settings.name, type: StackEvent.becameVisible);
+      if (previousRoute != null) {
+        onGlobalStackChanged(routeName: previousRoute.settings.name,
+            type: StackEvent.becameInvisible);
+      }
     } else if (route.settings.name == emptyName &&
         previousRoute?.isFirst == true) {
       //remove wrong initial items
       globalStack
           .removeWhere((element) => element.tab == tab && element.isFirst);
+    }
+    if (route.settings.name == emptyName && previousRoute != null) {
+      onGlobalStackChanged(routeName: previousRoute.settings.name, type: StackEvent.becameInvisible);
     }
 
     // print("items: " + globalStack.toString());

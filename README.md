@@ -103,6 +103,12 @@ Defines the backstack strategy and switches between the tabs according to it.
  * **switchTabWhenEmpty**: switches to the previously visited tab when the current navigator's stack is empty
  * **globalStack**: goes back and switches between the tabs as they were visited.
 
+#### **onGlobalStackChanged**
+Get notified when the current tab or any route changes
+```dart
+void Function({@required int tab, @required String routeName, @required StackEvent type}) onGlobalStackChanged;
+```
+
 
 
 ## Advanced usage

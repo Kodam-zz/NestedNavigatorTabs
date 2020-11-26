@@ -77,6 +77,9 @@ class TabPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return NestedNavigatorTabs(
       generator: generateRoute,
+      onGlobalStackChanged: ({routeName, tab, type}) {
+        print('$routeName on tab $tab became ${type == StackEvent.becameVisible ? "visible" : "invisible"}');
+      },
       tabs: [
         NavigatorTab(
             defaultRouteName: "page1",
